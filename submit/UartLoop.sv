@@ -3,6 +3,7 @@ module UartLoop(
     input clk,
     input rstn,
     Decoupled_ift.Slave uart_rdata,
+    //an interface with its own valid and ready signal
     Decoupled_ift.Master uart_tdata,
     input UartPack::uart_t debug_data,
     input logic debug_send,
@@ -12,10 +13,14 @@ module UartLoop(
     import UartPack::*;
 
     uart_t rdata;
+    //typedef logic [UART_DATA_WIDTH-1:0] uart_t
     logic rdata_valid;
+    //the validity of the data in rdata
 
     uart_t tdata;
+    //store the data to be sent
     logic tdata_valid;
+    //the validity of the data in tdata
 
     always_ff@(posedge clk or negedge rstn) begin
         if (~rstn) begin
@@ -24,15 +29,17 @@ module UartLoop(
             tdata <= '0;
             tdata_valid <= 1'b0;
         end else begin
-            // 接收数据
+            //receive the data
             if (uart_rdata.valid && uart_rdata.ready) begin
                 rdata <= uart_rdata.data;
+                //the rdata here is a register to store the data
                 rdata_valid <= 1'b1;
+                //set the valid signal
             end else begin
                 rdata_valid <= 1'b0;
+                //wait for the valid and ready signal
             end
-
-            // 发送数据
+            //send the data
             if (debug_send) begin
                 tdata <= debug_data;
                 tdata_valid <= 1'b1;
@@ -45,7 +52,7 @@ module UartLoop(
         end
     end
 
-    assign uart_rdata.ready = ~rdata_valid; // 准备接收新数据
+    assign uart_rdata.ready = ~rdata_valid;
     assign uart_tdata.data = tdata;
     assign uart_tdata.valid = tdata_valid;
 
